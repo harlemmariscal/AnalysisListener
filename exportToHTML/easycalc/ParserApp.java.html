@@ -1,0 +1,64 @@
+<html>
+<head>
+<title>ParserApp.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+ParserApp.java</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">easycalc</span><span class="s2">;</span>
+
+<span class="s0">import </span><span class="s1">java</span><span class="s2">.</span><span class="s1">util</span><span class="s2">.*;</span>
+<span class="s0">import </span><span class="s1">org</span><span class="s2">.</span><span class="s1">antlr</span><span class="s2">.</span><span class="s1">v4</span><span class="s2">.</span><span class="s1">runtime</span><span class="s2">.*;</span>
+<span class="s0">import </span><span class="s1">org</span><span class="s2">.</span><span class="s1">antlr</span><span class="s2">.</span><span class="s1">v4</span><span class="s2">.</span><span class="s1">runtime</span><span class="s2">.</span><span class="s1">tree</span><span class="s2">.*;</span>
+<span class="s0">import </span><span class="s1">easycalc</span><span class="s2">.</span><span class="s1">grammar</span><span class="s2">.*;</span>
+
+<span class="s0">public class </span><span class="s1">ParserApp </span><span class="s2">{</span>
+
+    <span class="s0">public static void </span><span class="s1">main</span><span class="s2">(</span><span class="s1">String</span><span class="s2">[] </span><span class="s1">args</span><span class="s2">) {</span>
+
+        <span class="s3">// ======================================================</span>
+        <span class="s3">// Read in multiple lines of input</span>
+        <span class="s3">// ======================================================</span>
+
+        <span class="s1">StringBuilder sb </span><span class="s2">= </span><span class="s0">new </span><span class="s1">StringBuilder</span><span class="s2">();</span>
+        <span class="s1">Scanner scan </span><span class="s2">= </span><span class="s0">new </span><span class="s1">Scanner</span><span class="s2">(</span><span class="s1">System</span><span class="s2">.</span><span class="s1">in</span><span class="s2">);</span>
+        <span class="s1">String nextLine </span><span class="s2">= </span><span class="s1">scan</span><span class="s2">.</span><span class="s1">nextLine</span><span class="s2">();</span>
+        <span class="s0">while </span><span class="s2">(!</span><span class="s1">nextLine</span><span class="s2">.</span><span class="s1">contains</span><span class="s2">(</span><span class="s4">&quot;$$&quot;</span><span class="s2">)) {</span>
+            <span class="s1">sb</span><span class="s2">.</span><span class="s1">append</span><span class="s2">(</span><span class="s1">nextLine</span><span class="s2">);</span>
+            <span class="s1">scan </span><span class="s2">= </span><span class="s0">new </span><span class="s1">Scanner</span><span class="s2">(</span><span class="s1">System</span><span class="s2">.</span><span class="s1">in</span><span class="s2">);</span>
+            <span class="s1">nextLine </span><span class="s2">= </span><span class="s1">scan</span><span class="s2">.</span><span class="s1">nextLine</span><span class="s2">();</span>
+        <span class="s2">}</span>
+        <span class="s1">scan</span><span class="s2">.</span><span class="s1">close</span><span class="s2">();</span>
+        <span class="s1">sb</span><span class="s2">.</span><span class="s1">append</span><span class="s2">(</span><span class="s1">nextLine</span><span class="s2">);</span>
+        <span class="s1">String str </span><span class="s2">= </span><span class="s1">sb</span><span class="s2">.</span><span class="s1">toString</span><span class="s2">();</span>
+
+        <span class="s3">// ======================================================</span>
+        <span class="s3">// Create the parse tree from the input stream</span>
+        <span class="s3">// ======================================================</span>
+
+        <span class="s1">CharStream input </span><span class="s2">= </span><span class="s1">CharStreams</span><span class="s2">.</span><span class="s1">fromString</span><span class="s2">(</span><span class="s1">str</span><span class="s2">);</span>
+        <span class="s1">EasyCalcLexer lexer </span><span class="s2">= </span><span class="s0">new </span><span class="s1">EasyCalcLexer</span><span class="s2">(</span><span class="s1">input</span><span class="s2">);</span>
+        <span class="s1">CommonTokenStream tokens </span><span class="s2">= </span><span class="s0">new </span><span class="s1">CommonTokenStream</span><span class="s2">(</span><span class="s1">lexer</span><span class="s2">);</span>
+        <span class="s1">EasyCalcParser parser </span><span class="s2">= </span><span class="s0">new </span><span class="s1">EasyCalcParser</span><span class="s2">(</span><span class="s1">tokens</span><span class="s2">);</span>
+        <span class="s1">ParseTree tree </span><span class="s2">= </span><span class="s1">parser</span><span class="s2">.</span><span class="s1">program</span><span class="s2">(); </span><span class="s3">// begin parsing at program rule</span>
+
+        <span class="s3">// ======================================================</span>
+        <span class="s3">// Print out the LISP-style tree</span>
+        <span class="s3">// ======================================================</span>
+
+        <span class="s1">System</span><span class="s2">.</span><span class="s1">out</span><span class="s2">.</span><span class="s1">println</span><span class="s2">(</span><span class="s1">tree</span><span class="s2">.</span><span class="s1">toStringTree</span><span class="s2">(</span><span class="s1">parser</span><span class="s2">));</span>
+    <span class="s2">}</span>
+<span class="s2">}</span></pre>
+</body>
+</html>
