@@ -9,20 +9,19 @@ import java.util.*;
 public class AnalysisListener extends EasyCalcBaseListener  {
 
     private final SortedMap<String, String> symbolTable = new TreeMap<>();
+
     private final List<String> errorList = new ArrayList<>();
+
     private final Stack<String> stack = new Stack<>();
+
     private boolean errorSentinel = false;
 
     public String getSymbolTableString() {
         StringBuilder sb = new StringBuilder();
 
         for (Map.Entry<String, String> entry : symbolTable.entrySet()) {
-            sb.append(entry.getKey())
-                    .append(" -> ")
-                    .append(entry.getValue().toUpperCase())
-                    .append("\n");
+            sb.append(entry.getKey()).append(" -> ").append(entry.getValue().toUpperCase()).append("\n");
         }
-
         return sb.toString();
     }
 
@@ -32,7 +31,6 @@ public class AnalysisListener extends EasyCalcBaseListener  {
         for (String err : errorList) {
             sb.append(err).append("\n");
         }
-
         return sb.toString();
     }
 
@@ -71,14 +69,12 @@ public class AnalysisListener extends EasyCalcBaseListener  {
     public void exitDeclar(EasyCalcParser.DeclarContext ctx) {
         String id = ctx.ID().getText();
         String type = ctx.type.getText().toUpperCase();
-
         if (symbolTable.containsKey(id)) {
             addRedefErr(ctx.ID().getSymbol());
             errorSentinel = true;
         } else {
             symbolTable.put(id, type);
         }
-
         errorSentinel = false;
     }
 
@@ -154,16 +150,9 @@ public class AnalysisListener extends EasyCalcBaseListener  {
     }
 
     @Override
-    public void exitParenExpr(EasyCalcParser.ParenExprContext ctx) {
-    }
-
-    @Override
     public void exitToExpr(EasyCalcParser.ToExprContext ctx) {
         if (errorSentinel) return;
-        if (stack.isEmpty()) return;
-
         String exprType = stack.pop();
-
         if (ctx.op.getText().equals("to_int") && exprType.equals("REAL")) {
             stack.push("INT");
         } else if (ctx.op.getText().equals("to_real") && exprType.equals("INT")) {
@@ -195,8 +184,6 @@ public class AnalysisListener extends EasyCalcBaseListener  {
         }
 
         if (!left.equals(right)) {
-            // Report the type clash at the left operand's position (expr(0))
-            // so the column matches the start of the offending operand (e.g. 'b').
             addTypeClashErr(ctx.expr(0).getStart());
             errorSentinel = true;
             return;
@@ -226,7 +213,6 @@ public class AnalysisListener extends EasyCalcBaseListener  {
         }
 
         if (!left.equals(right)) {
-            // Report at left operand start
             addTypeClashErr(ctx.expr(0).getStart());
             errorSentinel = true;
             return;
@@ -274,7 +260,6 @@ public class AnalysisListener extends EasyCalcBaseListener  {
         String left = stack.pop();
 
         if (!left.equals(right)) {
-            // Report at left operand start
             addTypeClashErr(ctx.expr(0).getStart());
             errorSentinel = true;
             return;
