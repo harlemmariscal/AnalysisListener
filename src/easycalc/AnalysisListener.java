@@ -6,24 +6,20 @@ import org.antlr.v4.runtime.Token;
 
 import java.util.*;
 
-public class AnalysisListener extends EasyCalcBaseListener  {
-
-    private final SortedMap<String, String> symbolTable = new TreeMap<>();
+public class AnalysisListener extends EasyCalcBaseListener {
 
     private final List<String> errorList = new ArrayList<>();
 
+
+    private final SortedMap<String, String> symbolTable = new TreeMap<>();
+
+
     private final Stack<String> stack = new Stack<>();
+
 
     private boolean errorSentinel = false;
 
-    public String getSymbolTableString() {
-        StringBuilder sb = new StringBuilder();
 
-        for (Map.Entry<String, String> entry : symbolTable.entrySet()) {
-            sb.append(entry.getKey()).append(" -> ").append(entry.getValue().toUpperCase()).append("\n");
-        }
-        return sb.toString();
-    }
 
     public String getErrorMessageString() {
         StringBuilder sb = new StringBuilder();
@@ -34,6 +30,17 @@ public class AnalysisListener extends EasyCalcBaseListener  {
         return sb.toString();
     }
 
+
+    public String getSymbolTableString() {
+        StringBuilder sb = new StringBuilder();
+
+        for (Map.Entry<String, String> entry : symbolTable.entrySet()) {
+            sb.append(entry.getKey()).append(" -> ").append(entry.getValue().toUpperCase()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // Given methods from the man himself
     private void addRedefErr(Token token) {
         String tokenStr = token.getText();
         int line = token.getLine();
@@ -67,91 +74,94 @@ public class AnalysisListener extends EasyCalcBaseListener  {
 
     @Override
     public void exitDeclar(EasyCalcParser.DeclarContext ctx) {
-        String id = ctx.ID().getText();
-        String type = ctx.type.getText().toUpperCase();
-        if (symbolTable.containsKey(id)) {
-            addRedefErr(ctx.ID().getSymbol());
-            errorSentinel = true;
+        String id = ctx.ID().getText();           // get the id
+        String type = ctx.type.getText().toUpperCase(); // get the type
+        if (symbolTable.containsKey(id)) {        // if the id is found in the symbol table
+            addRedefErr(ctx.ID().getSymbol());    // redef error
+            errorSentinel = true;                 // set the error sentinel to true from false
         } else {
-            symbolTable.put(id, type);
+            symbolTable.put(id, type);            // otherwise throw the id and type into the sorted map
         }
         errorSentinel = false;
     }
 
     @Override
     public void exitAssignStmt(EasyCalcParser.AssignStmtContext ctx) {
-        if (!errorSentinel) {
-            String id = ctx.ID().getText();
+        if (!errorSentinel) {                     // only run if no error has occurred yet
+            String id = ctx.ID().getText();       // get the id
 
-            if (!symbolTable.containsKey(id)) {
-                addUndefErr(ctx.ID().getSymbol());
-            } else if (!stack.isEmpty()) {
-                String leftType = symbolTable.get(id);
-                String rightType = stack.pop();
+            if (!symbolTable.containsKey(id)) {   // if the id is not in the symbol table
+                addUndefErr(ctx.ID().getSymbol()); // undef error
+            } else if (!stack.isEmpty()) {        // otherwise check the stack
+                String leftType = symbolTable.get(id); // get the declared type of the id
+                String rightType = stack.pop();        // pop the expression type off the stack
 
-                if (!leftType.equals(rightType)) {
-                    addTypeClashErr(ctx.ID().getSymbol());
+                if (!leftType.equals(rightType)) {     // if the types don't match
+                    addTypeClashErr(ctx.ID().getSymbol()); // type clash error
                 }
             }
         }
-
-        errorSentinel = false;
+        errorSentinel = false;                    // reset the sentinel for the next statement
     }
 
     @Override
     public void exitReadStmt(EasyCalcParser.ReadStmtContext ctx) {
-        if (!errorSentinel) {
-            String id = ctx.ID().getText();
+        if (!errorSentinel) {                     // only run if no error has occurred yet
+            String id = ctx.ID().getText();       // get the id
 
-            if (!symbolTable.containsKey(id)) {
-                addUndefErr(ctx.ID().getSymbol());
+            if (!symbolTable.containsKey(id)) {   // if the id is not in the symbol table
+                addUndefErr(ctx.ID().getSymbol()); // undef error
             }
         }
-
-        errorSentinel = false;
+        errorSentinel = false;                    // reset the sentinel for the next statement
     }
 
     @Override
     public void exitWriteStmt(EasyCalcParser.WriteStmtContext ctx) {
-        if (!errorSentinel && !stack.isEmpty()) {
-            stack.pop();
+        if (!errorSentinel && !stack.isEmpty()) { // only pop if no error and stack has something
+            stack.pop();                          // clear the expression type off the stack
         }
-
-        errorSentinel = false;
+        errorSentinel = false;                    // reset the sentinel for the next statement
     }
 
     @Override
     public void exitLitExpr(EasyCalcParser.LitExprContext ctx) {
-        if (errorSentinel) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        String text = ctx.getText();              // get the literal text
 
-        String text = ctx.getText();
-
-        if (text.equals("true") || text.equals("false")) {
-            stack.push("BOOL");
-        } else if (text.contains(".")) {
-            stack.push("REAL");
-        } else {
-            stack.push("INT");
+        if (text.equals("true") || text.equals("false")) { // if it's a boolean literal
+            stack.push("BOOL");                   // push BOOL onto the stack
+        } else if (text.contains(".")) {          // if it has a decimal point
+            stack.push("REAL");                   // push REAL onto the stack
+        } else {                                  // otherwise it's a whole number
+            stack.push("INT");                    // push INT onto the stack
         }
     }
 
     @Override
     public void exitIdExpr(EasyCalcParser.IdExprContext ctx) {
-        if (errorSentinel) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
 
-        String id = ctx.ID().getText();
+        String id = ctx.ID().getText();           // get the id
 
-        if (!symbolTable.containsKey(id)) {
-            addUndefErr(ctx.ID().getSymbol());
-            errorSentinel = true;
+        if (!symbolTable.containsKey(id)) {       // if the id is not in the symbol table
+            addUndefErr(ctx.ID().getSymbol());    // undef error
+            errorSentinel = true;                 // set the error sentinel to true
         } else {
-            stack.push(symbolTable.get(id));
+            stack.push(symbolTable.get(id));      // otherwise push its type onto the stack
         }
     }
 
+    // GIVEN AND COMPLETE DO NOT CHANGE
     @Override
     public void exitToExpr(EasyCalcParser.ToExprContext ctx) {
-        if (errorSentinel) return;
+        if (errorSentinel) {
+            return;
+        }
         String exprType = stack.pop();
         if (ctx.op.getText().equals("to_int") && exprType.equals("REAL")) {
             stack.push("INT");
@@ -165,176 +175,203 @@ public class AnalysisListener extends EasyCalcBaseListener  {
 
     @Override
     public void exitMulDivExpr(EasyCalcParser.MulDivExprContext ctx) {
-        if (errorSentinel) return;
-        if (stack.size() < 2) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        if (stack.size() < 2) {                   // need two operands on the stack
+            return;
+        }
 
-        String right = stack.pop();
-        String left = stack.pop();
+        String right = stack.pop();               // pop the right operand type
+        String left = stack.pop();                // pop the left operand type
 
-        if (left.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(0).getStart(), left);
+        if (left.equals("BOOL")) {                // * and / don't work on booleans
+            addArgErr(ctx.op, ctx.expr(0).getStart(), left); // arg error on left
             errorSentinel = true;
             return;
         }
 
-        if (right.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(1).getStart(), right);
+        if (right.equals("BOOL")) {               // check right operand too
+            addArgErr(ctx.op, ctx.expr(1).getStart(), right); // arg error on right
             errorSentinel = true;
             return;
         }
 
-        if (!left.equals(right)) {
-            addTypeClashErr(ctx.expr(0).getStart());
+        if (!left.equals(right)) {                // both operands must be the same type
+            addTypeClashErr(ctx.expr(0).getStart()); // type clash error
             errorSentinel = true;
             return;
         }
 
-        stack.push(left);
+        stack.push(left);                         // push the result type onto the stack
     }
 
     @Override
     public void exitAddSubExpr(EasyCalcParser.AddSubExprContext ctx) {
-        if (errorSentinel) return;
-        if (stack.size() < 2) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        if (stack.size() < 2) {                   // need two operands on the stack
+            return;
+        }
 
-        String right = stack.pop();
-        String left = stack.pop();
+        String right = stack.pop();               // pop the right operand type
+        String left = stack.pop();                // pop the left operand type
 
-        if (left.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(0).getStart(), left);
+        if (left.equals("BOOL")) {                // + and - don't work on booleans
+            addArgErr(ctx.op, ctx.expr(0).getStart(), left); // arg error on left
             errorSentinel = true;
             return;
         }
 
-        if (right.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(1).getStart(), right);
+        if (right.equals("BOOL")) {               // check right operand too
+            addArgErr(ctx.op, ctx.expr(1).getStart(), right); // arg error on right
             errorSentinel = true;
             return;
         }
 
-        if (!left.equals(right)) {
-            addTypeClashErr(ctx.expr(0).getStart());
+        if (!left.equals(right)) {                // both operands must be the same type
+            addTypeClashErr(ctx.expr(0).getStart()); // type clash error
             errorSentinel = true;
             return;
         }
 
-        stack.push(left);
+        stack.push(left);                         // push the result type onto the stack
     }
 
     @Override
     public void exitLessGrtrExpr(EasyCalcParser.LessGrtrExprContext ctx) {
-        if (errorSentinel) return;
-        if (stack.size() < 2) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        if (stack.size() < 2) {                   // need two operands on the stack
+            return;
+        }
 
-        String right = stack.pop();
-        String left = stack.pop();
+        String right = stack.pop();               // pop the right operand type
+        String left = stack.pop();                // pop the left operand type
 
-        if (left.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(0).getStart(), left);
+        if (left.equals("BOOL")) {                // < and > don't work on booleans
+            addArgErr(ctx.op, ctx.expr(0).getStart(), left); // arg error on left
             errorSentinel = true;
             return;
         }
 
-        if (right.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(1).getStart(), right);
+        if (right.equals("BOOL")) {               // check right operand too
+            addArgErr(ctx.op, ctx.expr(1).getStart(), right); // arg error on right
             errorSentinel = true;
             return;
         }
 
-        if (!left.equals(right)) {
-            // Report at left operand start
-            addTypeClashErr(ctx.expr(0).getStart());
+        if (!left.equals(right)) {                // both operands must be the same type
+            addTypeClashErr(ctx.expr(0).getStart()); // type clash error
             errorSentinel = true;
             return;
         }
 
-        stack.push("BOOL");
+        stack.push("BOOL");                       // comparison always produces a boolean
     }
 
     @Override
     public void exitEqualExpr(EasyCalcParser.EqualExprContext ctx) {
-        if (errorSentinel) return;
-        if (stack.size() < 2) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        if (stack.size() < 2) {                   // need two operands on the stack
+            return;
+        }
 
-        String right = stack.pop();
-        String left = stack.pop();
+        String right = stack.pop();               // pop the right operand type
+        String left = stack.pop();                // pop the left operand type
 
-        if (!left.equals(right)) {
-            addTypeClashErr(ctx.expr(0).getStart());
+        if (!left.equals(right)) {                // both sides of == must be the same type
+            addTypeClashErr(ctx.expr(0).getStart()); // type clash error
             errorSentinel = true;
             return;
         }
 
-        stack.push("BOOL");
+        stack.push("BOOL");                       // equality check always produces a boolean
     }
 
     @Override
     public void exitAndExpr(EasyCalcParser.AndExprContext ctx) {
-        if (errorSentinel) return;
-        if (stack.size() < 2) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        if (stack.size() < 2) {                   // need two operands on the stack
+            return;
+        }
 
-        String right = stack.pop();
-        String left = stack.pop();
+        String right = stack.pop();               // pop the right operand type
+        String left = stack.pop();                // pop the left operand type
 
-        if (!left.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(0).getStart(), left);
+        if (!left.equals("BOOL")) {               // and only works on booleans
+            addArgErr(ctx.op, ctx.expr(0).getStart(), left); // arg error on left
             errorSentinel = true;
             return;
         }
 
-        if (!right.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(1).getStart(), right);
+        if (!right.equals("BOOL")) {              // check right operand too
+            addArgErr(ctx.op, ctx.expr(1).getStart(), right); // arg error on right
             errorSentinel = true;
             return;
         }
 
-        stack.push("BOOL");
+        stack.push("BOOL");                       // push the result type onto the stack
     }
 
     @Override
     public void exitOrExpr(EasyCalcParser.OrExprContext ctx) {
-        if (errorSentinel) return;
-        if (stack.size() < 2) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        if (stack.size() < 2) {                   // need two operands on the stack
+            return;
+        }
 
-        String right = stack.pop();
-        String left = stack.pop();
+        String right = stack.pop();               // pop the right operand type
+        String left = stack.pop();                // pop the left operand type
 
-        if (!left.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(0).getStart(), left);
+        if (!left.equals("BOOL")) {               // or only works on booleans
+            addArgErr(ctx.op, ctx.expr(0).getStart(), left); // arg error on left
             errorSentinel = true;
             return;
         }
 
-        if (!right.equals("BOOL")) {
-            addArgErr(ctx.op, ctx.expr(1).getStart(), right);
+        if (!right.equals("BOOL")) {              // check right operand too
+            addArgErr(ctx.op, ctx.expr(1).getStart(), right); // arg error on right
             errorSentinel = true;
             return;
         }
 
-        stack.push("BOOL");
+        stack.push("BOOL");                       // push the result type onto the stack
     }
 
     @Override
     public void exitIfExpr(EasyCalcParser.IfExprContext ctx) {
-        if (errorSentinel) return;
-        if (stack.size() < 3) return;
+        if (errorSentinel) {                      // if an error already occurred skip this
+            return;
+        }
+        if (stack.size() < 3) {                   // need three expressions on the stack
+            return;
+        }
 
-        String elseType = stack.pop();
-        String thenType = stack.pop();
-        String condType = stack.pop();
+        String elseType = stack.pop();            // pop the else branch type
+        String thenType = stack.pop();            // pop the then branch type
+        String condType = stack.pop();            // pop the condition type
 
-        if (!condType.equals("BOOL")) {
-            addArgErr(ctx.start, ctx.expr(0).getStart(), condType);
+        if (!condType.equals("BOOL")) {           // the condition must be a boolean
+            addArgErr(ctx.start, ctx.expr(0).getStart(), condType); // arg error on condition
             errorSentinel = true;
             return;
         }
 
-        if (!thenType.equals(elseType)) {
-            addTypeClashErr(ctx.expr(1).getStart());
+        if (!thenType.equals(elseType)) {         // then and else branches must match types
+            addTypeClashErr(ctx.expr(1).getStart()); // type clash error
             errorSentinel = true;
             return;
         }
 
-        stack.push(thenType);
+        stack.push(thenType);                     // push the result type onto the stack
     }
 }
